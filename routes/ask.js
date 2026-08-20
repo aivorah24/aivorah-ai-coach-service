@@ -3,7 +3,6 @@ const router = express.Router();
 const { generateAnswer, generateAnswerStream } = require('../services/llm');
 const { gatherAnswerContext } = require('../services/ai-coach/context');
 const { getLessonGrounding } = require('../services/ai-coach/lessonGrounding');
-const { FREE_DAILY_LIMIT, getIsPro, getDailyUsage, incrementDailyUsage } = require('../services/ai-coach/usage');
 const { logEvent } = require('../services/analytics');
 const { normalizeCurriculum } = require('../utils/curriculum');
 const { checkInputSafety } = require('../services/contentSafety');
@@ -26,21 +25,6 @@ router.post('/', async (req, res) => {
     if (!safety.safe) {
       console.warn('[Safety] Blocked input:', safety.category, '| email:', userEmail);
       return res.json({ answer: safety.response, sources: [], images: [] });
-    }
-
-    // ── Free-tier usage gate ────────────────────────────────────────
-    const emailLc = (userEmail || '').toLowerCase().trim();
-    const isPro = await getIsPro(emailLc);
-    if (!isPro && emailLc) {
-      const { count } = await getDailyUsage(emailLc);
-      if (count >= FREE_DAILY_LIMIT) {
-        return res.status(429).json({
-          error: `You've used all ${FREE_DAILY_LIMIT} free messages for today. Upgrade to Pro for unlimited AI Coach access.`,
-          limitReached: true,
-          dailyLimit: FREE_DAILY_LIMIT,
-          used: count,
-        });
-      }
     }
 
     const { context, sources, images: gatheredImages, ragMeta, webMeta } = await gatherAnswerContext({
@@ -81,9 +65,6 @@ router.post('/', async (req, res) => {
         webQuery: webMeta.query || '',
       },
     }).catch(() => {});
-
-    // Track usage for free-tier limit
-    if (!isPro && emailLc) incrementDailyUsage(emailLc).catch(() => {});
 
     res.json({ answer, sources, images });
   } catch (err) {
@@ -267,21 +248,6 @@ router.post('/stream', async (req, res) => {
     return res.json({ answer: streamSafety.response, sources: [], images: [] });
   }
 
-  // ── Free-tier usage gate (stream) ─────────────────────────────
-  const streamEmailLc = (userEmail || '').toLowerCase().trim();
-  const streamIsPro = await getIsPro(streamEmailLc);
-  if (!streamIsPro && streamEmailLc) {
-    const { count } = await getDailyUsage(streamEmailLc);
-    if (count >= FREE_DAILY_LIMIT) {
-      return res.status(429).json({
-        error: `You've used all ${FREE_DAILY_LIMIT} free messages for today. Upgrade to Pro for unlimited AI Coach access.`,
-        limitReached: true,
-        dailyLimit: FREE_DAILY_LIMIT,
-        used: count,
-      });
-    }
-  }
-
   // SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -320,9 +286,6 @@ router.post('/stream', async (req, res) => {
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     res.end();
 
-    // Track usage for free-tier limit
-    if (!streamIsPro && streamEmailLc) incrementDailyUsage(streamEmailLc).catch(() => {});
-
     logEvent('ai_ask', {
       userEmail,
       role,
@@ -351,29 +314,6 @@ router.post('/stream', async (req, res) => {
     console.error('Error in /ask/stream:', err.message);
     res.write(`data: ${JSON.stringify({ type: 'error', error: 'Something went wrong. Please try again.' })}\n\n`);
     res.end();
-  }
-});
-
-// GET /ask/usage?email=...
-// Returns daily usage stats for the AI Coach (used by frontend to show remaining messages)
-router.get('/usage', async (req, res) => {
-  try {
-    const email = (req.query.email || '').toLowerCase().trim();
-    if (!email) return res.status(400).json({ error: 'email required' });
-
-    const isPro = await getIsPro(email);
-    if (isPro) return res.json({ isPro: true, unlimited: true, dailyLimit: null, used: 0, remaining: null });
-
-    const { count } = await getDailyUsage(email);
-    res.json({
-      isPro: false,
-      unlimited: false,
-      dailyLimit: FREE_DAILY_LIMIT,
-      used: count,
-      remaining: Math.max(0, FREE_DAILY_LIMIT - count),
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 });
 
