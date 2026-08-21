@@ -18,8 +18,12 @@ const NVIDIA_NIM_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const NVIDIA_MODEL   = 'meta/llama-3.3-70b-instruct';
 
 // Model routing: fast model for simple verdicts, powerful for explanations
-const MODEL_FAST  = 'llama-3.1-8b-instant';       // ~300-500ms TTFT
-const MODEL_POWER = 'llama-3.3-70b-versatile';     // best reasoning
+// llama-3.1-8b-instant and llama-3.3-70b-versatile were both shut down by
+// Groq on 2026-08-16 (see console.groq.com/docs/deprecations) — replaced
+// with Groq's own recommended successors, preserving the same fast/power
+// split (gpt-oss-20b for the fast tier, gpt-oss-120b for the reasoning tier).
+const MODEL_FAST  = 'openai/gpt-oss-20b';          // fast tier
+const MODEL_POWER = 'openai/gpt-oss-120b';         // best reasoning
 
 async function callNvidiaNim(messages, maxTokens = 1024) {
   const res = await fetch(NVIDIA_NIM_URL, {

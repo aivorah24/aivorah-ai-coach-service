@@ -147,8 +147,14 @@ ${classSummary || 'No class data provided.'}`;
           text: question || 'Analyse this assignment/document. Grade it, identify mistakes, and provide teacher feedback.',
         },
       ];
+      // llama-4-scout was shut down by Groq on 2026-07-17. gpt-oss-120b (used
+      // elsewhere in this file) is text-only, so it can't replace this
+      // specific call — this one sends image_url content. Llama 4 Maverick
+      // is Groq's still-active, production vision model (not the
+      // preview-only Qwen3.6 Groq also suggests) — same native-multimodal
+      // family as Scout, so it's the closest faithful replacement.
       const completion = await client.chat.completions.create({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent },
@@ -165,7 +171,7 @@ ${classSummary || 'No class data provided.'}`;
         : question;
 
       const completion = await client.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent },
@@ -214,7 +220,7 @@ CHILD DATA:
 ${childSummary || 'No child data available yet.'}`;
 
     const completion = await client.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: question },

@@ -3,11 +3,19 @@ const supabase = require('./supabase');
 // ── Cost per million tokens (USD) ──────────────────────────────────────────
 const PRICING = {
   // Groq models
+  // llama-3.3-70b-versatile / llama-3.1-8b-instant / llama-4-scout were shut
+  // down by Groq on 2026-08-16 / 2026-07-17 — kept here (not deleted) so cost
+  // lookups on historical logged calls still resolve; new calls use the
+  // entries below instead.
   'llama-3.3-70b-versatile':  { input: 0.59, output: 0.79 },
   'llama-3.1-70b-versatile':  { input: 0.59, output: 0.79 },
   'llama-3.1-8b-instant':     { input: 0.05, output: 0.08 },
   'llama-3.2-3b-preview':     { input: 0.06, output: 0.06 },
   'mixtral-8x7b-32768':       { input: 0.24, output: 0.24 },
+  'meta-llama/llama-4-scout-17b-16e-instruct': { input: 0.11, output: 0.34 },
+  'openai/gpt-oss-120b':      { input: 0.15, output: 0.60 },
+  'openai/gpt-oss-20b':       { input: 0.075, output: 0.30 },
+  'meta-llama/llama-4-maverick-17b-128e-instruct': { input: 0.50, output: 0.77 },
   // NVIDIA NIM
   'mistralai/mistral-small-4-119b-2603': { input: 0.10, output: 0.10 },
   'mistralai/mistral-7b-instruct-v0.3':  { input: 0.08, output: 0.08 },

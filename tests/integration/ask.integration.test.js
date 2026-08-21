@@ -219,7 +219,7 @@ describe('POST /ask/teacher', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.answer).toBe('Sai Mohan needs help with Currency Conversion.');
-    expect(mockGroqCreate).toHaveBeenCalledWith(expect.objectContaining({ model: 'llama-3.3-70b-versatile' }));
+    expect(mockGroqCreate).toHaveBeenCalledWith(expect.objectContaining({ model: 'openai/gpt-oss-120b' }));
   });
 
   test('the real class summary is injected into the system prompt', async () => {
@@ -248,7 +248,7 @@ describe('POST /ask/teacher', () => {
     expect(res.status).toBe(200);
     expect(res.body.answer).toBe('This looks correct, 8/10.');
     const call = mockGroqCreate.mock.calls[0][0];
-    expect(call.model).toBe('meta-llama/llama-4-scout-17b-16e-instruct');
+    expect(call.model).toBe('meta-llama/llama-4-maverick-17b-128e-instruct');
     const userContent = call.messages[1].content;
     expect(userContent[0]).toEqual({ type: 'image_url', image_url: { url: 'data:image/png;base64,ZmFrZS1pbWFnZQ==' } });
   });
@@ -322,7 +322,7 @@ describe('POST /ask/parent', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.answer).toBe('Your child is doing great with fractions!');
-    expect(mockGroqCreate).toHaveBeenCalledWith(expect.objectContaining({ model: 'llama-3.3-70b-versatile' }));
+    expect(mockGroqCreate).toHaveBeenCalledWith(expect.objectContaining({ model: 'openai/gpt-oss-120b' }));
   });
 
   test('the real child summary is injected into the system prompt, not the teacher-style class summary', async () => {
