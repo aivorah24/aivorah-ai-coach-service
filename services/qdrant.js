@@ -60,14 +60,20 @@ async function searchContent({ vector, curriculum, grade, subject, topic, limit 
   if (contentType) must.push({ key: 'content_type', match: { value: contentType } });
 
   const targetCollection = collection || COLLECTION;
-  const results = await client.search(targetCollection, {
-    vector,
+  // The installed @qdrant/js-client-rest version has no `.search()` method
+  // (it was removed in favor of the Query API) — calling it threw
+  // "client.search is not a function" on every real request, silently
+  // swallowed by searchGrounding's try/catch, so retrieval always fell
+  // through to the last, most-relaxed attempt (or returned empty) for
+  // every curriculum, not just CBSE.
+  const response = await client.query(targetCollection, {
+    query: vector,
     limit,
     filter: must.length > 0 ? { must } : undefined,
     with_payload: true,
   });
 
-  return results;
+  return response.points;
 }
 
 // Robust grounding retrieval used by assignment/quiz generation. Routes to the
@@ -95,6 +101,13 @@ async function searchGrounding({ vector, curriculum, grade, subject, topic, limi
     // IB PYP → CBSE base (same collection), then NCERT base.
     attempts.push({ collection: IB_COLLECTION, curriculum: 'CBSE', grade: gradeNum ? `Grade ${gradeNum}` : grade, subject });
     if (gradeNum) attempts.push({ collection: COLLECTION, curriculum: 'NCERT', grade: parseInt(gradeNum, 10), subject });
+  }
+  if (norm === 'CBSE' && gradeNum) {
+    // The real book content for CBSE was ingested under the NCERT tag in the
+    // dedicated NCERT collection (integer grade), not under "CBSE" in
+    // ai_mentor_content — CBSE requests must check there before relaxing
+    // subject/curriculum, otherwise real content is missed entirely.
+    attempts.push({ collection: COLLECTION, curriculum: 'NCERT', grade: parseInt(gradeNum, 10), subject });
   }
   // Relax subject, then curriculum (keep grade), on the primary collection.
   attempts.push({ collection: primary.collection, curriculum: primary.qdrantCurriculum, grade: primary.qdrantGrade });
