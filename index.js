@@ -9,6 +9,7 @@ app.use(express.json({ limit: '100mb' }));
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'aivorah-ai-coach-service' }));
 
 app.use('/ask', require('./routes/ask'));
+app.use('/curriculum-context', require('./routes/curriculumContext'));
 
 const PORT = process.env.PORT || 3007;
 if (require.main === module) {
